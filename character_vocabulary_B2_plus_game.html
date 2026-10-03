@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B2+ Character Vocabulary Game</title>
+<style>
+:root{--pink:#e9a4c4;--purple:#6d3b86;--lav:#f4eafa;--ink:#2f2633;--muted:#756b78;--white:#fff}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:linear-gradient(135deg,#fff7fb,#f4edff);color:var(--ink)}
+.wrap{max-width:900px;margin:auto;padding:24px}
+header{background:linear-gradient(135deg,#6d3b86,#a95a91);color:white;border-radius:24px;padding:28px 30px;box-shadow:0 10px 30px #6d3b8625}
+h1{margin:0 0 6px;font-size:32px} header p{margin:0;opacity:.9}
+.panel{background:white;border-radius:22px;padding:22px;margin-top:18px;box-shadow:0 8px 25px #6d3b8612}
+.controls{display:flex;flex-wrap:wrap;gap:10px}
+button,select,input{font:inherit}
+button{border:0;border-radius:13px;padding:11px 15px;cursor:pointer;background:var(--purple);color:white;font-weight:650}
+button.secondary{background:#f0e6f5;color:var(--purple)}
+button.sound{background:#f7d9e7;color:#6d3b86;padding:8px 11px}
+select,input{border:1px solid #ddd0e2;border-radius:12px;padding:11px;background:#fff}
+.progress{height:10px;background:#eee4f2;border-radius:20px;overflow:hidden;margin:14px 0}
+.bar{height:100%;width:0;background:var(--pink);transition:.3s}
+.question{font-size:23px;font-weight:700;margin:18px 0}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.option{background:#faf6fc;color:var(--ink);border:1px solid #eadcf0;text-align:left}
+.option:hover{background:#f3e6f6}
+.correct{background:#dff4e5!important;border-color:#8bc89c!important}
+.wrong{background:#ffe1e1!important;border-color:#dc9292!important}
+.feedback{min-height:26px;margin-top:15px;font-weight:650}
+.score{font-size:18px;font-weight:700}
+.hidden{display:none}
+.list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.word{border:1px solid #eadcf0;border-radius:15px;padding:13px;background:#fcf9fd;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.word b{color:#5f326f}
+small{color:var(--muted)}
+.tip{background:#fff2f7;border-left:4px solid var(--pink);padding:12px 14px;border-radius:10px;margin-top:14px}
+@media(max-width:650px){.options,.list{grid-template-columns:1fr}.wrap{padding:14px}h1{font-size:26px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Character Vocabulary · B2+</h1>
+<p>27 personality words · quiz · typing · definitions · pronunciation 🔊</p>
+</header>
+
+<div class="panel">
+<div class="controls">
+<select id="mode" onchange="start()">
+<option value="meaning">1. Guess the word from the definition</option>
+<option value="sentence">2. Choose the best word in context</option>
+<option value="type">3. Type the word</option>
+<option value="synonym">4. Find the closest meaning</option>
+</select>
+<button onclick="start()">New round</button>
+<button class="secondary" onclick="toggleList()">Show vocabulary</button>
+</div>
+<div class="tip">💡 Tap 🔊 beside a word to hear its pronunciation. The sound uses your device's built-in English voice.</div>
+</div>
+
+<div class="panel">
+<div class="score" id="score">Score: 0 / 0</div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div id="game"></div>
+</div>
+
+<div class="panel hidden" id="vocabPanel">
+<h2>Vocabulary bank</h2>
+<div class="list" id="vocab"></div>
+</div>
+</div>
+
+<script>
+const words=[
+["obstinate","unwilling to change your opinion or decision, even when others try to persuade you"],
+["stubborn","determined not to change your mind or behaviour"],
+["pig-headed","very stubborn and unwilling to listen to other people (informal, negative)"],
+["stingy","unwilling to spend or give money"],
+["mean","unkind or unpleasant; sometimes also unwilling to spend money"],
+["tight-fisted","unwilling to spend money (informal)"],
+["miserly","extremely unwilling to spend money; excessively economical"],
+["self-important","believing that you are more important than you really are"],
+["arrogant","behaving as if you are better or more important than other people"],
+["full of oneself","too pleased with yourself and your abilities (informal)"],
+["eccentric","behaving in a strange but often amusing or interesting way"],
+["odd","strange or unusual"],
+["peculiar","strange, unusual, or distinctive"],
+["weird","very strange, unusual, or difficult to explain"],
+["blunt","saying exactly what you think without trying to make your words softer"],
+["abrupt","sudden and sometimes unfriendly in manner or speech"],
+["brusque","using very few words and seeming unfriendly or impatient"],
+["curt","brief and rather rude in speech"],
+["unprincipled","not guided by moral standards; willing to do what is wrong for personal advantage"],
+["permissive","allowing people a lot of freedom and not enforcing many rules"],
+["inquisitive","wanting to know or learn about things"],
+["nosy","too interested in other people's private affairs (informal, negative)"],
+["extravagant","spending or using much more money/resources than necessary"],
+["naive","lacking experience or good judgement; too ready to believe things"],
+["pushy","trying too hard to persuade people or get what you want"],
+["aggressive","forceful or hostile, especially when trying to get what you want"],
+["bossy","always telling other people what to do"]
+];
+
+let q=[],i=0,score=0,answered=false;
+
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function speak(text){
+ if(!("speechSynthesis" in window)){alert("Speech playback is not supported by this browser.");return}
+ speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(text);
+ u.lang="en-GB"; u.rate=.82;
+ const voices=speechSynthesis.getVoices();
+ const v=voices.find(x=>x.lang==="en-GB")||voices.find(x=>x.lang.startsWith("en"));
+ if(v)u.voice=v;
+ speechSynthesis.speak(u);
+}
+function start(){
+ q=shuffle(words);i=0;score=0;answered=false;render();
+}
+function render(){
+ document.getElementById("score").textContent=`Score: ${score} / ${i}`;
+ document.getElementById("bar").style.width=(i/q.length*100)+"%";
+ const mode=document.getElementById("mode").value;
+ if(i>=q.length){
+  document.getElementById("game").innerHTML=`<h2>Round complete 🎉</h2><p>You scored <b>${score}/${q.length}</b>.</p><button onclick="start()">Play again</button>`;
+  document.getElementById("bar").style.width="100%";return;
+ }
+ answered=false;
+ const item=q[i], word=item[0], def=item[1];
+ let prompt="", body="";
+ if(mode==="meaning"){
+  const opts=shuffle([item,...shuffle(words).filter(x=>x[0]!==word).slice(0,3)]);
+  prompt="Which word matches this definition?";
+  body=`<div class="question">${def}</div><div class="options">${opts.map(x=>`<button class="option" onclick="answer(this,'${esc(x[0])}','${esc(word)}')">${x[0]}</button>`).join("")}</div>`;
+ } else if(mode==="sentence"){
+  const stems=[
+   ["He refuses to reconsider his decision even after everyone explains the facts. He is being …","obstinate"],
+   ["She never buys anything unless it is absolutely necessary because she hates spending money. She is …","miserly"],
+   ["The manager keeps telling everyone exactly what to do, even when nobody asked. He is …","bossy"],
+   ["He tells people exactly what he thinks, even when his comments may hurt them. He is …","blunt"],
+   ["She asks endless questions about other people's private lives. She is …","nosy"],
+   ["The designer spent far more money than necessary on the event. It was …","extravagant"],
+   ["He behaves as though everyone else is less intelligent than he is. He is …","arrogant"],
+   ["She has unusual habits and a very unconventional sense of humour. She is …","eccentric"],
+   ["The receptionist gave me a very short, unfriendly reply. She was …","curt"],
+   ["He tries to pressure colleagues into agreeing with him. He is …","pushy"]
+  ];
+  let s=stems.find(x=>x[1]===word)||[def,word];
+  const opts=shuffle([item,...shuffle(words).filter(x=>x[0]!==word).slice(0,3)]);
+  prompt="Choose the best word:";
+  body=`<div class="question">${s[0]}</div><div class="options">${opts.map(x=>`<button class="option" onclick="answer(this,'${esc(x[0])}','${esc(s[1])}')">${x[0]}</button>`).join("")}</div>`;
+ } else if(mode==="type"){
+  prompt="Type the word described below:";
+  body=`<div class="question">${def}</div><input id="typed" placeholder="Type the word…" autocomplete="off" style="width:100%;max-width:520px"><br><br><button onclick="checkType('${esc(word)}')">Check</button>`;
+ } else {
+  const synonyms={
+   obstinate:"stubborn",stubborn:"obstinate","pig-headed":"stubborn",stingy:"tight-fisted",mean:"unkind",
+   "tight-fisted":"stingy",miserly:"stingy","self-important":"arrogant",arrogant:"self-important","full of oneself":"self-important",
+   eccentric:"unusual",odd:"strange",peculiar:"strange",weird:"strange",blunt:"direct",abrupt:"sudden",brusque:"curt",curt:"brusque",
+   unprincipled:"immoral",permissive:"lenient",inquisitive:"curious",nosy:"intrusive",extravagant:"wasteful",naive:"inexperienced",
+   pushy:"insistent",aggressive:"forceful",bossy:"controlling"
+  };
+  const target=synonyms[word]||"";
+  const opts=shuffle([target,...shuffle(words.map(x=>x[0]).filter(x=>x!==word&&x!==target)).slice(0,3)]);
+  prompt="Choose the closest meaning:";
+  body=`<div class="question">${word} <button class="sound" onclick="speak('${esc(word)}')">🔊</button></div><div class="options">${opts.map(x=>`<button class="option" onclick="answer(this,'${esc(x)}','${esc(target)}')">${x}</button>`).join("")}</div>`;
+ }
+ document.getElementById("game").innerHTML=`<div><small>Question ${i+1} of ${q.length}</small><h3>${prompt}</h3>${body}<div class="feedback" id="feedback"></div></div>`;
+ if(mode==="type")document.getElementById("typed").focus();
+}
+function checkType(correct){
+ if(answered)return;answered=true;
+ const el=document.getElementById("typed"), val=el.value.trim().toLowerCase();
+ const fb=document.getElementById("feedback");
+ if(val===correct.toLowerCase()){score++;fb.textContent="✓ Correct!";fb.style.color="#26834b"}
+ else{fb.innerHTML=`✗ The answer is <b>${correct}</b>. <button class="sound" onclick="speak('${esc(correct)}')">🔊</button>`;fb.style.color="#a33"}
+ setTimeout(()=>{i++;render()},1200);
+}
+function answer(btn,chosen,correct){
+ if(answered)return;answered=true;
+ const fb=document.getElementById("feedback");
+ if(chosen===correct){btn.classList.add("correct");score++;fb.textContent="✓ Correct!";fb.style.color="#26834b"}
+ else{btn.classList.add("wrong");fb.textContent=`✗ Correct answer: ${correct}`;fb.style.color="#a33"}
+ setTimeout(()=>{i++;render()},1000);
+}
+function esc(s){return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'")}
+function toggleList(){
+ const p=document.getElementById("vocabPanel");p.classList.toggle("hidden");
+ document.getElementById("vocab").innerHTML=words.map(x=>`<div class="word"><span><b>${x[0]}</b><br><small>${x[1]}</small></span><button class="sound" onclick="speak('${esc(x[0])}')">🔊</button></div>`).join("");
+}
+start();
+</script>
+</body>
+</html>
