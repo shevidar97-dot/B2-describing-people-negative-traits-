@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B2+ Character Vocabulary — Positive Traits</title>
+<style>
+:root{--pink:#e9a4c4;--purple:#6d3b86;--lav:#f4eafa;--ink:#302634;--muted:#756b78}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:linear-gradient(135deg,#fff7fb,#f4edff);color:var(--ink)}
+.wrap{max-width:920px;margin:auto;padding:22px}.hero{background:linear-gradient(135deg,#6d3b86,#a95a91);color:#fff;border-radius:25px;padding:28px;box-shadow:0 10px 30px #6d3b8625}
+h1{margin:0 0 7px;font-size:31px}.hero p{margin:0;opacity:.92}
+.panel{background:#fff;border-radius:22px;padding:21px;margin-top:17px;box-shadow:0 8px 25px #6d3b8612}
+.controls{display:flex;gap:10px;flex-wrap:wrap}button,select,input{font:inherit}button{border:0;border-radius:13px;padding:11px 15px;cursor:pointer;background:var(--purple);color:#fff;font-weight:650}button.secondary{background:#f0e6f5;color:var(--purple)}button.sound{background:#f7d9e7;color:#6d3b86;padding:8px 11px}
+select,input{border:1px solid #ddd0e2;border-radius:12px;padding:11px;background:#fff}.progress{height:10px;background:#eee4f2;border-radius:20px;overflow:hidden;margin:14px 0}.bar{height:100%;width:0;background:var(--pink);transition:.3s}
+.question{font-size:22px;font-weight:700;margin:17px 0}.options{display:grid;grid-template-columns:1fr 1fr;gap:11px}.option{background:#faf6fc;color:var(--ink);border:1px solid #eadcf0;text-align:left}.option:hover{background:#f3e6f6}.correct{background:#dff4e5!important;border-color:#8bc89c!important}.wrong{background:#ffe1e1!important;border-color:#dc9292!important}
+.feedback{min-height:27px;margin-top:14px;font-weight:650}.score{font-size:18px;font-weight:700}.hidden{display:none}.list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.word{border:1px solid #eadcf0;border-radius:15px;padding:13px;background:#fcf9fd;display:flex;align-items:center;justify-content:space-between;gap:8px}.word b{color:#5f326f}small{color:var(--muted)}
+.tip{background:#fff2f7;border-left:4px solid var(--pink);padding:12px 14px;border-radius:10px;margin-top:14px}
+@media(max-width:650px){.options,.list{grid-template-columns:1fr}.wrap{padding:13px}h1{font-size:26px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="hero"><h1>Character Vocabulary · B2+</h1><p>Positive & nuanced personality traits · 16 words · quiz · typing · pronunciation 🔊</p></div>
+
+<div class="panel">
+<div class="controls">
+<select id="mode" onchange="start()">
+<option value="meaning">1. Definition → word</option>
+<option value="context">2. Context → word</option>
+<option value="type">3. Type the word</option>
+<option value="synonym">4. Closest meaning</option>
+</select>
+<button onclick="start()">New round</button>
+<button class="secondary" onclick="toggleList()">Vocabulary bank</button>
+</div>
+<div class="tip">💡 Tap 🔊 to hear the word. The game uses your device's built-in English voice.</div>
+</div>
+
+<div class="panel">
+<div class="score" id="score">Score: 0 / 0</div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div id="game"></div>
+</div>
+
+<div class="panel hidden" id="vocabPanel"><h2>Vocabulary bank</h2><div class="list" id="vocab"></div></div>
+</div>
+
+<script>
+const words=[
+["determined","having made a firm decision and being unwilling to let anything stop you"],
+["thrifty","careful about spending money and avoiding waste"],
+["economical","using money, time, materials, etc. carefully and without unnecessary expense"],
+["self-assured","confident in your abilities and decisions"],
+["confident","feeling sure about your abilities, qualities, or judgement"],
+["unconventional","different from what is usual or generally accepted"],
+["original","new, creative, or different from ideas that already exist"],
+["frank","honest and direct, especially when saying something difficult"],
+["direct","saying what you mean clearly and without unnecessary indirectness"],
+["open","willing to communicate honestly and consider other ideas"],
+["broad-minded","willing to accept opinions, beliefs, or behaviour that are different from your own"],
+["enquiring","showing interest in finding out information or understanding something"],
+["generous","willing to give money, time, help, or attention to others"],
+["innocent","lacking experience or knowledge of the more complicated or unpleasant aspects of life"],
+["ambitious","strongly wanting to achieve success, power, or an important goal"],
+["assertive","confidently expressing your opinions and needs without being aggressive"]
+];
+
+const contexts={
+"determined":"Even after failing twice, she kept applying for the scholarship until she finally got it.",
+"thrifty":"He compares prices, repairs old clothes, and rarely buys things he does not need.",
+"economical":"This small car is practical because it uses very little fuel.",
+"self-assured":"She speaks calmly in meetings and never seems worried about whether people will approve of her ideas.",
+"confident":"He knows he can handle the presentation, even though it is his first one.",
+"unconventional":"Instead of following the traditional career path, she opened a tiny bookshop on a boat.",
+"original":"The student's project stood out because the concept was completely new.",
+"frank":"I appreciate her honesty: she told me exactly what she thought, even though it was difficult to hear.",
+"direct":"If you want an answer, ask him. He never hides what he means behind vague hints.",
+"open":"She is happy to discuss her mistakes and listen to suggestions from other people.",
+"broad-minded":"He can respect beliefs and lifestyles that are very different from his own.",
+"enquiring":"The child kept asking questions because she genuinely wanted to understand how the machine worked.",
+"generous":"She always offers her time to help colleagues who are struggling.",
+"innocent":"He was surprisingly unaware of how competitive the industry could be.",
+"ambitious":"She wants to become a partner in the company within five years.",
+"assertive":"Instead of saying nothing, she calmly explained that the deadline was unrealistic and proposed a different plan."
+};
+
+const synonyms={
+"determined":"resolute","thrifty":"frugal","economical":"efficient","self-assured":"confident","confident":"self-assured",
+"unconventional":"unusual","original":"innovative","frank":"honest","direct":"straightforward","open":"honest",
+"broad-minded":"tolerant","enquiring":"curious","generous":"giving","innocent":"inexperienced","ambitious":"driven","assertive":"self-confident"
+};
+
+let q=[],i=0,score=0,answered=false;
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function esc(s){return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'")}
+function speak(text){
+ if(!("speechSynthesis" in window)){alert("Speech playback is not supported by this browser.");return}
+ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang="en-GB"; u.rate=.82;
+ const vs=speechSynthesis.getVoices(); const v=vs.find(x=>x.lang==="en-GB")||vs.find(x=>x.lang.startsWith("en")); if(v)u.voice=v;
+ speechSynthesis.speak(u);
+}
+function start(){q=shuffle(words);i=0;score=0;answered=false;render()}
+function render(){
+ document.getElementById("score").textContent=`Score: ${score} / ${i}`;
+ document.getElementById("bar").style.width=(i/q.length*100)+"%";
+ if(i>=q.length){document.getElementById("game").innerHTML=`<h2>Round complete 🎉</h2><p>You scored <b>${score}/${q.length}</b>.</p><button onclick="start()">Play again</button>`;document.getElementById("bar").style.width="100%";return}
+ answered=false; const [word,def]=q[i], mode=document.getElementById("mode").value;
+ let body="",prompt="";
+ if(mode==="meaning"){
+  prompt="Which word matches this definition?";
+  const opts=shuffle([q[i],...shuffle(words).filter(x=>x[0]!==word).slice(0,3)]);
+  body=`<div class="question">${def}</div><div class="options">${opts.map(x=>`<button class="option" onclick="answer(this,'${esc(x[0])}','${esc(word)}')">${x[0]}</button>`).join("")}</div>`;
+ } else if(mode==="context"){
+  prompt="Choose the best word for the context:";
+  const opts=shuffle([q[i],...shuffle(words).filter(x=>x[0]!==word).slice(0,3)]);
+  body=`<div class="question">${contexts[word]}</div><div class="options">${opts.map(x=>`<button class="option" onclick="answer(this,'${esc(x[0])}','${esc(word)}')">${x[0]}</button>`).join("")}</div>`;
+ } else if(mode==="type"){
+  prompt="Type the word described below:";
+  body=`<div class="question">${def}</div><input id="typed" placeholder="Type the word…" autocomplete="off" style="width:100%;max-width:530px"><br><br><button onclick="checkType('${esc(word)}')">Check</button>`;
+ } else {
+  prompt="Choose the closest meaning:";
+  const target=synonyms[word]; const pool=words.map(x=>x[0]).filter(x=>x!==word);
+  const opts=shuffle([target,...shuffle(pool.filter(x=>x!==target)).slice(0,3)]);
+  body=`<div class="question">${word} <button class="sound" onclick="speak('${esc(word)}')">🔊</button></div><div class="options">${opts.map(x=>`<button class="option" onclick="answer(this,'${esc(x)}','${esc(target)}')">${x}</button>`).join("")}</div>`;
+ }
+ document.getElementById("game").innerHTML=`<small>Question ${i+1} of ${q.length}</small><h3>${prompt}</h3>${body}<div class="feedback" id="feedback"></div>`;
+ if(mode==="type")document.getElementById("typed").focus();
+}
+function checkType(correct){
+ if(answered)return; answered=true; const val=document.getElementById("typed").value.trim().toLowerCase(),fb=document.getElementById("feedback");
+ if(val===correct.toLowerCase()){score++;fb.textContent="✓ Correct!";fb.style.color="#26834b"}
+ else{fb.innerHTML=`✗ The answer is <b>${correct}</b>. <button class="sound" onclick="speak('${esc(correct)}')">🔊</button>`;fb.style.color="#a33"}
+ setTimeout(()=>{i++;render()},1200);
+}
+function answer(btn,chosen,correct){
+ if(answered)return;answered=true;const fb=document.getElementById("feedback");
+ if(chosen===correct){btn.classList.add("correct");score++;fb.textContent="✓ Correct!";fb.style.color="#26834b"}
+ else{btn.classList.add("wrong");fb.textContent=`✗ Correct answer: ${correct}`;fb.style.color="#a33"}
+ setTimeout(()=>{i++;render()},1000);
+}
+function toggleList(){
+ const p=document.getElementById("vocabPanel");p.classList.toggle("hidden");
+ document.getElementById("vocab").innerHTML=words.map(x=>`<div class="word"><span><b>${x[0]}</b><br><small>${x[1]}</small></span><button class="sound" onclick="speak('${esc(x[0])}')">🔊</button></div>`).join("");
+}
+start();
+</script>
+</body>
+</html>
