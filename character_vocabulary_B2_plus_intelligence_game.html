@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Character Vocabulary · B2+ · Intelligence</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(135deg,#fff1f8,#f1edff);color:#2d2340;min-height:100vh}
+.wrap{max-width:900px;margin:auto;padding:24px 16px 40px}header{background:linear-gradient(135deg,#7d3c98,#d84d9a);color:#fff;border-radius:24px;padding:26px;box-shadow:0 12px 30px #7b4d8c33}
+h1{margin:0 0 8px;font-size:30px}.sub{opacity:.93}.card{background:#fff;border-radius:22px;padding:24px;margin-top:18px;box-shadow:0 8px 25px #6d4b7a18}
+.modes{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}button{border:0;border-radius:14px;padding:11px 15px;background:#f1e6f8;color:#59346e;font-weight:700;cursor:pointer}button:hover{transform:translateY(-1px)}button.active{background:#8e44ad;color:#fff}
+.progress{height:10px;background:#eee3f3;border-radius:10px;overflow:hidden;margin:15px 0}.bar{height:100%;width:0;background:linear-gradient(90deg,#8e44ad,#e255a1);transition:.3s}
+.prompt{font-size:22px;font-weight:700;line-height:1.4;margin:22px 0}.options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.option{background:#faf7fc;border:2px solid #eadff0;text-align:left;min-height:56px}.option:hover{border-color:#b67ac9}
+.feedback{min-height:28px;margin-top:15px;font-weight:700}.correct{color:#26834a}.wrong{color:#b13c63}
+.inputrow{display:flex;gap:10px}input{flex:1;border:2px solid #eadff0;border-radius:14px;padding:14px;font-size:16px;outline:none}
+.stats{display:flex;justify-content:space-between;color:#745b82;font-size:14px}.speak{background:#fbe3f2;color:#9a3670}
+.bank{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px}.word{padding:11px;border-radius:12px;background:#f7f0fa}small{color:#806d89}
+@media(max-width:650px){.options{grid-template-columns:1fr}h1{font-size:25px}}
+</style></head>
+<body><div class="wrap">
+<header><h1>Character Vocabulary · B2+</h1><div class="sub">Intelligence & Cunning · 12 words</div>
+<div class="modes"><button class="mode active" data-mode="definition">Definition → Word</button>
+<button class="mode" data-mode="context">Context → Word</button><button class="mode" data-mode="typing">Type the Word</button>
+<button class="mode" data-mode="synonym">Closest Meaning</button></div></header>
+<div class="card"><div class="stats"><span id="counter">1 / 12</span><span id="score">Score: 0</span></div>
+<div class="progress"><div class="bar" id="bar"></div></div><div class="prompt" id="prompt"></div><div id="answers"></div>
+<div class="feedback" id="feedback"></div><button class="speak" id="speak">🔊 Listen</button>
+<button id="next" style="display:none;float:right;background:#8e44ad;color:white">Next →</button></div>
+<div class="card"><h2>Vocabulary Bank</h2><div class="bank" id="bank"></div></div>
+</div>
+<script>
+const words=[{'word': 'Intelligent', 'definition': 'having a high ability to learn, understand, and solve problems', 'context': 'She is intelligent and quickly understands difficult ideas.'}, {'word': 'Bright', 'definition': 'quick to learn and understand things', 'context': "He's a bright student who always asks interesting questions."}, {'word': 'Sharp', 'definition': 'quick to notice, understand, and respond to things', 'context': 'She has a sharp mind and notices details other people miss.'}, {'word': 'Shrewd', 'definition': 'good at judging people and situations, especially in a practical way', 'context': 'He is a shrewd businessman who rarely makes a careless decision.'}, {'word': 'Brainy', 'definition': 'very intelligent; informal', 'context': 'Her brainy older brother loves solving complicated puzzles.'}, {'word': 'Half-witted', 'definition': 'not very intelligent; rather foolish', 'context': 'It was a half-witted idea that created more problems than it solved.'}, {'word': 'Daft', 'definition': 'silly or not very intelligent; informal, often British', 'context': "Don't be daft—you can't wear a winter coat to the beach!"}, {'word': 'Dumb', 'definition': 'not intelligent; informal and potentially rude', 'context': 'Calling someone dumb is usually considered insulting.'}, {'word': 'Dim', 'definition': 'not very intelligent or quick to understand; informal', 'context': 'He can be a little dim sometimes, but he is very kind.'}, {'word': 'Cunning', 'definition': 'clever at achieving what you want, often by using tricks', 'context': 'The cunning fox found a way into the garden.'}, {'word': 'Crafty', 'definition': 'clever at getting what you want, especially by using indirect or dishonest methods', 'context': "She's crafty enough to get people to agree with her without noticing."}, {'word': 'Sly', 'definition': 'clever and secretive, often in a dishonest way', 'context': 'He gave me a sly smile before changing the subject.'}];
+const synonyms={'Intelligent': ['clever', 'smart'], 'Bright': ['clever', 'quick-witted'], 'Sharp': ['quick-witted', 'astute'], 'Shrewd': ['astute', 'savvy'], 'Brainy': ['clever', 'intellectual'], 'Half-witted': ['foolish', 'stupid'], 'Daft': ['silly', 'foolish'], 'Dumb': ['stupid', 'unintelligent'], 'Dim': ['slow', 'stupid'], 'Cunning': ['clever', 'scheming'], 'Crafty': ['devious', 'sly'], 'Sly': ['devious', 'crafty']};
+let mode="definition",index=0,score=0,answered=false,deck=shuffle();
+function shuffle(){return [...words].sort(()=>Math.random()-.5)} function current(){return deck[index]}
+const promptEl=document.getElementById("prompt"),answersEl=document.getElementById("answers"),feedbackEl=document.getElementById("feedback"),counter=document.getElementById("counter"),scoreEl=document.getElementById("score"),bar=document.getElementById("bar"),next=document.getElementById("next");
+function distractors(x){return shuffle().filter(a=>a.word!==x.word).slice(0,3).map(a=>a.word)}
+function render(){answered=false;next.style.display="none";feedbackEl.textContent="";feedbackEl.className="feedback";let x=current();
+counter.textContent=`${index+1} / ${deck.length}`;bar.style.width=`${index/deck.length*100}%`;
+if(mode==="definition")promptEl.textContent=x.definition;if(mode==="context")promptEl.textContent=x.context;
+if(mode==="synonym")promptEl.textContent=`Which word is closest in meaning to “${(synonyms[x.word]||[])[0]}”?`;
+if(mode==="typing"){promptEl.textContent=x.definition;answersEl.innerHTML='<div class="inputrow"><input id="answer" placeholder="Type the word..."><button id="check">Check</button></div>';document.getElementById("check").onclick=checkTyping;document.getElementById("answer").addEventListener("keydown",e=>{if(e.key==="Enter")checkTyping()});return}
+let opts=[x.word,...distractors(x)].sort(()=>Math.random()-.5);answersEl.innerHTML=opts.map(o=>`<button class="option">${o}</button>`).join("");[...answersEl.children].forEach(b=>b.onclick=()=>checkChoice(b.textContent))}
+function finish(correct){answered=true;if(correct){score++;feedbackEl.textContent="✓ Correct!";feedbackEl.className="feedback correct"}else{feedbackEl.textContent=`✗ The answer is: ${current().word}`;feedbackEl.className="feedback wrong"}scoreEl.textContent=`Score: ${score}`;next.style.display="inline-block";bar.style.width=`${(index+1)/deck.length*100}%`}
+function checkChoice(v){if(answered)return;[...answersEl.children].forEach(b=>b.disabled=true);finish(v===current().word)}function checkTyping(){if(answered)return;let v=document.getElementById("answer").value.trim().toLowerCase();finish(v===current().word.toLowerCase())}
+next.onclick=()=>{if(index<deck.length-1){index++;render()}else{index=0;deck=shuffle();score=0;render()}};
+document.querySelectorAll(".mode").forEach(b=>b.onclick=()=>{document.querySelectorAll(".mode").forEach(x=>x.classList.remove("active"));b.classList.add("active");mode=b.dataset.mode;index=0;score=0;deck=shuffle();render()});
+document.getElementById("speak").onclick=()=>{speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(current().word);u.lang="en-GB";u.rate=.82;speechSynthesis.speak(u)};
+document.getElementById("bank").innerHTML=words.map(x=>`<div class="word"><b>${x.word}</b><br><small>${x.definition}</small></div>`).join("");render();
+</script></body></html>
