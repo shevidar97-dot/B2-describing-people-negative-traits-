@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Character Vocabulary B2+ — Relationships</title>
+<style>
+body{margin:0;background:#f8effa;font-family:Arial,sans-serif;color:#30233d}
+.wrap{max-width:850px;margin:auto;padding:18px}
+header,.card{background:white;border-radius:20px;padding:22px;margin-bottom:16px;box-shadow:0 5px 20px rgba(80,40,90,.12)}
+header{background:linear-gradient(135deg,#8745a5,#d85b9e);color:white}
+h1{margin:0 0 6px}button{border:0;border-radius:12px;padding:12px 15px;margin:4px;background:#f0e5f5;color:#55306a;font-weight:bold;cursor:pointer}
+.mode.active,#next{background:#8a45a5;color:white}
+#question{font-size:21px;font-weight:bold;line-height:1.5;min-height:70px;margin:18px 0}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.answers button{text-align:left;background:#fbf8fc;border:2px solid #eadff0;margin:0}
+#feedback{min-height:30px;font-weight:bold;margin:15px 0}
+.good{color:#27834a}.bad{color:#b23d64}
+.progress{height:9px;background:#eadff0;border-radius:9px;overflow:hidden}#bar{height:100%;width:0;background:#d3569d}
+input{width:65%;padding:13px;border:2px solid #eadff0;border-radius:12px;font-size:16px}
+.bank{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.word{background:#f8f0fa;padding:10px;border-radius:10px}small{color:#765f80}
+@media(max-width:600px){.answers{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Character Vocabulary · B2+</h1>
+<div>Relationships & Personality · 15 words</div>
+<div id="modes">
+<button class="mode active" data-mode="definition">Definition → Word</button>
+<button class="mode" data-mode="context">Context → Word</button>
+<button class="mode" data-mode="typing">Type the Word</button>
+<button class="mode" data-mode="synonym">Closest Meaning</button>
+</div>
+</header>
+<div class="card">
+<div><span id="counter">1 / 15</span> · <span id="score">Score: 0</span></div>
+<div class="progress"><div id="bar"></div></div>
+<div id="question">Loading...</div>
+<div id="answers" class="answers"></div>
+<div id="feedback"></div>
+<button id="listen">🔊 Listen</button>
+<button id="next" style="display:none">Next →</button>
+</div>
+<div class="card"><h2>Vocabulary Bank</h2><div id="bank" class="bank"></div></div>
+</div>
+<script>
+(function() {
+var DATA=[{"w": "Gregarious", "d": "sociable and enjoying the company of other people", "c": "She is very gregarious and loves meeting new people."}, {"w": "Quarrelsome", "d": "often arguing or looking for opportunities to fight or disagree", "c": "He can be quite quarrelsome when he is stressed."}, {"w": "Argumentative", "d": "often trying to argue or disagree with other people", "c": "She becomes argumentative when someone challenges her opinion."}, {"w": "Sadistic", "d": "taking pleasure in causing other people pain or suffering", "c": "A sadistic person may deliberately hurt others just to enjoy their reaction."}, {"w": "Easy-going", "d": "relaxed, calm, and not easily worried or annoyed", "c": "My new colleague is very easy-going and never makes a big fuss."}, {"w": "Even-tempered", "d": "usually calm and not easily made angry", "c": "He is so even-tempered that it is difficult to make him lose his patience."}, {"w": "Laid-back", "d": "very relaxed and not worried about things", "c": "She is laid-back and does not stress about small problems."}, {"w": "Rude", "d": "not polite and showing little respect for other people", "c": "It was rude of him to interrupt her while she was speaking."}, {"w": "Ill-mannered", "d": "having bad manners and behaving impolitely", "c": "The ill-mannered customer shouted at the waiter."}, {"w": "Discourteous", "d": "impolite and lacking consideration for other people", "c": "His discourteous behaviour made everyone uncomfortable."}, {"w": "Trustworthy", "d": "deserving to be trusted because you are honest and reliable", "c": "She is trustworthy, so I can tell her my secrets."}, {"w": "Reliable", "d": "someone you can depend on to do what they promise", "c": "He is reliable and always does what he says he will do."}, {"w": "Sincere", "d": "honest and genuine in what you say or feel", "c": "Her apology sounded sincere."}, {"w": "Jealous", "d": "feeling unhappy because someone has something you want or because you fear losing someone's attention", "c": "He gets jealous when his partner spends time with other people."}, {"w": "Envious", "d": "wanting something that another person has", "c": "She felt envious of her friend's success."}];
+var SYN={"Gregarious": "sociable", "Quarrelsome": "argumentative", "Argumentative": "quarrelsome", "Sadistic": "cruel", "Easy-going": "relaxed", "Even-tempered": "calm", "Laid-back": "relaxed", "Rude": "impolite", "Ill-mannered": "impolite", "Discourteous": "impolite", "Trustworthy": "reliable", "Reliable": "dependable", "Sincere": "genuine", "Jealous": "possessive", "Envious": "resentful"};
+var mode="definition", index=0, score=0, deck=[], answered=false;
+
+function shuffle(a) {
+  var b=a.slice(), i=b.length, j, t;
+  while(i) {
+    j=Math.floor(Math.random()*i--);
+    t=b[i]; b[i]=b[j]; b[j]=t;
+  }
+  return b;
+}
+function current() { return deck[index]; }
+function el(id) { return document.getElementById(id); }
+
+function show() {
+  var x=current(), opts, i, b;
+  answered=false;
+  el("counter").innerHTML=(index+1)+" / "+deck.length;
+  el("score").innerHTML="Score: "+score;
+  el("bar").style.width=((index/deck.length)*100)+"%";
+  el("feedback").innerHTML="";
+  el("feedback").className="";
+  el("next").style.display="none";
+
+  if(mode==="definition") el("question").innerHTML=x.d;
+  else if(mode==="context") el("question").innerHTML=x.c;
+  else if(mode==="synonym") el("question").innerHTML="Which word is closest in meaning to “"+SYN[x.w]+"”?";
+  else el("question").innerHTML=x.d;
+
+  if(mode==="typing") {
+    el("answers").innerHTML='<div><input id="typed" type="text" placeholder="Type the word..."><button id="check">Check</button></div>';
+    el("check").onclick=checkTyped;
+    el("typed").onkeydown=function(e) { if(e.key==="Enter") checkTyped(); };
+    return;
+  }
+
+  opts=shuffle(DATA).slice(0,4);
+  var has=false;
+  for(i=0;i<opts.length;i++) if(opts[i].w===x.w) has=true;
+  if(!has) opts[3]=x;
+  opts=shuffle(opts);
+
+  el("answers").innerHTML="";
+  for(i=0;i<opts.length;i++) {
+    b=document.createElement("button");
+    b.className="answer";
+    b.innerHTML=opts[i].w;
+    b.onclick=(function(word) { return function() { checkChoice(word); }; })(opts[i].w);
+    el("answers").appendChild(b);
+  }
+}
+
+function finish(ok) {
+  answered=true;
+  if(ok) {
+    score++;
+    el("feedback").innerHTML="✓ Correct!";
+    el("feedback").className="good";
+  } else {
+    el("feedback").innerHTML="✗ The answer is: "+current().w;
+    el("feedback").className="bad";
+  }
+  el("score").innerHTML="Score: "+score;
+  el("next").style.display="inline-block";
+  el("bar").style.width=((index+1)/deck.length*100)+"%";
+}
+function checkChoice(v) {
+  if(answered) return;
+  finish(v===current().w);
+}
+function checkTyped() {
+  if(answered) return;
+  var v=el("typed").value.replace(/^\s+|\s+$/g,"").toLowerCase();
+  finish(v===current().w.toLowerCase());
+}
+
+el("next").onclick=function() {
+  if(index<deck.length-1) { index++; show(); }
+  else { index=0; score=0; deck=shuffle(DATA); show(); }
+};
+var modeButtons=document.getElementsByClassName("mode");
+for(var i=0;i<modeButtons.length;i++) {
+  modeButtons[i].onclick=function() {
+    for(var j=0;j<modeButtons.length;j++) modeButtons[j].className="mode";
+    this.className="mode active";
+    mode=this.getAttribute("data-mode");
+    index=0; score=0; deck=shuffle(DATA); show();
+  };
+}
+el("listen").onclick=function() {
+  if(!("speechSynthesis" in window)) { alert("Your browser does not support pronunciation."); return; }
+  speechSynthesis.cancel();
+  var u=new SpeechSynthesisUtterance(current().w);
+  u.lang="en-GB"; u.rate=0.82;
+  speechSynthesis.speak(u);
+};
+
+var bank="";
+for(var k=0;k<DATA.length;k++) bank+='<div class="word"><b>'+DATA[k].w+'</b><br><small>'+DATA[k].d+'</small></div>';
+el("bank").innerHTML=bank;
+deck=shuffle(DATA);
+show();
+})();
+</script>
+</body>
+</html>
